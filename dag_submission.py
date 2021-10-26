@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 import os
 import requests
-import boto3
 import json
 import pyodbc
 from airflow import DAG
@@ -55,7 +54,7 @@ def insertDataIntoDynamicsTable():
     # crsr.fast_executemany = True For bulk load
     
     sql_query_insert = "Insert into dynamics.dynamics_staging (contact_id,sourceId,title,firstName,lastName,email,companyName,createdOn,modifiedOn,wasContacted,isDynamics,isSalesLT,address1,city,state,zip,country,priPhoneNumber,donotphone) VALUES (?, ?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-    sql_query_customer_table = "Insert into dynamics.dynamics_staging (contact_id,sourceId,title,firstName,lastName,email,companyName,createdOn,modifiedOn,wasContacted,isDynamics,isSalesLT,address1,city,state,zip,country,priPhoneNumber,donotphone) select rowguid,'None',Title,FirstName,LastName,EmailAddress,CompanyName,ModifiedDate,ModifiedDate,'0',0,1,'None','None','None','None','None',Phone,'0'  from SalesLT.Customer;"
+    sql_query_customer_table = "Insert into dynamics.dynamics_staging (contact_id,sourceId,title,firstName,lastName,email,companyName,createdOn,modifiedOn,wasContacted,isDynamics,isSalesLT,address1,city,state,zip,country,priPhoneNumber,donotphone) select c.rowguid ,'None',cav.title,cav.firstName,cav.lastName,cav.email,cav.companyName,GETDATE() ,GETDATE() ,'0',0,1,cav.address1,cav.city,cav.state,cav.zip,cav.country,cav.priPhoneNumber,'0'  from SalesLT.customerAddressView cav , SalesLT.Customer c where cav.email = c.EmailAddress;"
     sql_query_insert_leads_staging = "Insert into dynamics.Leads_staging (id,sourceId,title,firstName,lastName,email,companyName,createdOn,modifiedOn,wasContacted,isDynamics,isSalesLT,address1,city,state,zip,country,priPhoneNumber) select contact_id,sourceId,title,firstName,lastName,email,companyName,createdOn,modifiedOn,wasContacted,isDynamics,isSalesLT,address1,city,state,zip,country,priPhoneNumber from (select *,ROW_NUMBER() OVER(PARTITION by email order by isDynamics) rn from dynamics.dynamics_staging ds) a where rn = 1 and donotphone = 0"
     sql_query_insert_dbo_leads = "Insert into dbo.Leads (id,sourceId,title,firstName,lastName,email,companyName,createdOn,modifiedOn,wasContacted,isDynamics,isSalesLT,address1,city,state,zip,country,priPhoneNumber) select * from dynamics.Leads_staging"
     
